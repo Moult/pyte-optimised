@@ -150,3 +150,12 @@ DECSTBM = "r"
 
 #: *Horizontal position adjust*: Same as :data:`CHA`.
 HPA = "'"
+
+#: *Repeat*: Repeat the preceding graphic character # times
+REP = "b"
+
+#: *Scroll up*: scroll up
+SU = "S"
+
+#: *Scroll down*: scroll up
+SD = "T"

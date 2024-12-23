@@ -811,6 +811,7 @@ class Screen:
         self.dirty.update(range(self.lines))
         self._buffer.clear()
         self.margins = Margins(0, self.lines - 1)
+        self.last_char = ""
 
         self.mode = set([mo.DECAWM, mo.DECTCEM])
 
@@ -1054,6 +1055,7 @@ class Screen:
         write_data = line.write_data
         char_at = line.char_at
         for char in data:
+            self.last_char = char
             char_width = wcwidth(char)
 
             # If this was the last column in a line and auto wrap mode is
@@ -1155,6 +1157,19 @@ class Screen:
         """
         self.icon_name = param
 
+    def set_color_number(self, index: int, color: str) -> None:
+        """Set colour number index to be the specified colour (in hex)
+        """
+        # TODO: This has no way to reset colors back to their original.
+        if index > 15:
+            g.FG_BG_256[index] = color
+        elif index > 7:  # Bright colors
+            g.FG_AIXTERM[index + 82] = color
+            g.BG_AIXTERM[index + 92] = color
+        else:
+            g.FG_ANSI[index + 30] = color
+            g.BG_ANSI[index + 40] = color
+
     def carriage_return(self):
         """Move the cursor to the beginning of the current line."""
         self.cursor.x = 0
@@ -1219,6 +1234,62 @@ class Screen:
 
         else:
             self.cursor_up()
+
+    def scroll_up(self, count=None):
+        """Move the cursor down one line in the same column. If the
+        cursor is at the last line, create a new line at the bottom.
+        """
+        top, bottom = self.margins
+        for _ in range(count or 1):
+            buffer = self._buffer
+            pop = buffer.pop
+
+            non_empty_y = sorted(buffer)
+            begin = bisect_left(non_empty_y, top + 1)
+            end = bisect_right(non_empty_y, bottom, begin)
+
+            # the top line must be unconditionally removed
+            # this pop is required because it may happen that
+            # the next line (top + 1) is empty and therefore
+            # the for-loop above didn't overwrite the line before
+            # (top + 1 - 1, aka top)
+            pop(top, None)
+
+            to_move = non_empty_y[begin:end]
+            for y in to_move:
+                buffer[y-1] = pop(y)
+
+            # TODO: mark only the lines within margins?
+            # we could mark "(y-1, y) for y in to_move"
+            self.dirty.update(range(self.lines))
+
+    def scroll_down(self, count=None):
+        """Move the cursor up one line in the same column. If the cursor
+        is at the first line, create a new line at the top.
+        """
+        top, bottom = self.margins
+        for _ in range(count or 1):
+            buffer = self._buffer
+            pop = buffer.pop
+
+            non_empty_y = sorted(buffer)
+            begin = bisect_left(non_empty_y, top)
+            end = bisect_right(non_empty_y, bottom - 1, begin)
+
+            # the bottom line must be unconditionally removed
+            # this pop is required because it may happen that
+            # the previous line (bottom - 1) is empty and therefore
+            # the for-loop above didn't overwrite the line after
+            # (bottom - 1 + 1, aka bottom)
+            pop(bottom, None)
+
+            to_move = non_empty_y[begin:end]
+            for y in reversed(to_move):
+                buffer[y+1] = pop(y)
+
+            # TODO: mark only the lines within margins?
+            # we could mark "(y+1, y) for y in to_move"
+            self.dirty.update(range(self.lines))
 
     def linefeed(self):
         """Perform an index and, if :data:`~pyte.modes.LNM` is set, a
@@ -1389,7 +1460,12 @@ class Screen:
         for x in reversed(non_empty_x[move_begin:drop_begin]):
             line[x + count] = pop(x)  # move
 
-
+    def repeat_character(self, count=None) -> None:
+        """Repeat drawing the last drawn character # times.
+        :param int count: number of characters to insert.
+        """
+        if self.last_char:
+            self.draw(self.last_char * (count or 1))
 
     def delete_characters(self, count=None):
         """Delete the indicated # of characters, starting with the

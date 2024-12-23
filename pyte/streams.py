@@ -103,6 +103,7 @@ class Stream:
         esc.DCH: "delete_characters",
         esc.ECH: "erase_characters",
         esc.HPR: "cursor_forward",
+        esc.REP: "repeat_character",
         esc.DA: "report_device_attributes",
         esc.VPA: "cursor_to_line",
         esc.VPR: "cursor_down",
@@ -113,7 +114,9 @@ class Stream:
         esc.SGR: "select_graphic_rendition",
         esc.DSR: "report_device_status",
         esc.DECSTBM: "set_margins",
-        esc.HPA: "cursor_to_column"
+        esc.HPA: "cursor_to_column",
+        esc.SU: "scroll_up",
+        esc.SD: "scroll_down"
     }
 
     #: A set of all events dispatched by the stream.
@@ -361,6 +364,9 @@ class Stream:
                     listener.set_icon_name(param)
                 if code in "02":
                     listener.set_title(param)
+                if code == "4":
+                    index, color = param.split(";")
+                    listener.set_color_number(int(index), color[4:].replace("/", "").lower())
             elif char not in NUL_OR_DEL:
                 draw(char)
 
