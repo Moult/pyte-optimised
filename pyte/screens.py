@@ -216,6 +216,18 @@ class BufferStats(namedtuple("_BufferStats", [
                     "\n".join("{0: >3}: {1}".format(x, stats) for x, stats in self.line_stats)
                     )
 
+Chart = namedtuple("Chart", [
+    "data",
+    "fg",
+    "bg",
+    "bold",
+    "italics",
+    "underscore",
+    "strikethrough",
+    "reverse",
+    "blink",
+])
+
 
 class Char:
     """
@@ -387,13 +399,7 @@ class Line(dict):
         If no char is at that position, a new char is created and added
         to the line.
         """
-        if x in self:
-            char = self[x]
-            char.data = data
-            char.width = width
-            char.style = style
-        else:
-            self[x] = Char(data, width, style)
+        self[x] = Chart(data, style.fg, style.bg, style.bold, style.italics, style.underscore, style.strikethrough, style.reverse, style.blink)
 
     def char_at(self, x):
         """
