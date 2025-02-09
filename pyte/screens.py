@@ -942,8 +942,8 @@ class Screen:
         if mo.DECSCNM in modes:
             for line in self._buffer.values():
                 line.default.style = line.default.style._replace(reverse=True)
-                for char in line.values():
-                    char.style = char.style._replace(reverse=True)
+                for k, char in line.items():
+                    line[k] = char._replace(reverse=True)
 
             self.select_graphic_rendition(7)  # +reverse.
 
@@ -980,8 +980,8 @@ class Screen:
         if mo.DECSCNM in modes:
             for line in self._buffer.values():
                 line.default.style = line.default.style._replace(reverse=False)
-                for char in line.values():
-                    char.style = char.style._replace(reverse=False)
+                for k, char in line.items():
+                    line[k] = char._replace(reverse=False)
 
             self.select_graphic_rendition(27)  # -reverse.
 
